@@ -5,10 +5,11 @@ from utl import *
 import re
 from lxml import etree
 import gevent
+from gevent.pool import Pool
 import sys
 # import time
 
-
+r =re.compile
 ADDR = '192.168.109.220'
 DB_NAME = 'p2p:ppdai'
 CONNECTION = happybase.Connection(ADDR, autoconnect=False)
@@ -103,8 +104,9 @@ def crawl_page(year, page):
                     d[i] = d[i].encode('utf-8')
                 if d.has_key('status'):
                     continue
+                # print d
                 # q.put(d)
-                bat.put('%s_%s_%s'%(d['info:cert_id'], d['info:phone'], d['info:name']), d)
+                bat.put('%s_%s_%s'%(d['info:cert_id'], d['info:phone'], d['info:name']), d) #身份证号，手机号，姓名作key
 
 
 def get_pages(url):
@@ -118,9 +120,13 @@ def get_pages(url):
 def solve_year(year):
     print u'%d开始'%year
     pages = int(get_pages('http://loan.ppdai.com/blacklist/%d_m0'%year))
-    for j in xrange(1,pages/20):
-        gevent.joinall([gevent.spawn(crawl_page, year, i) for i in xrange(20*(j-1), 20*j)],)
-    gevent.joinall([gevent.spawn(crawl_page, year, i) for i in xrange(pages-pages%20, pages+1)],)
+    pool = Pool(size=20)
+    for i in xrange(pages):
+        pool.apply_async(crawl_page, args=(year, i))
+    # for j in xrange(1,pages/20):
+    #     gevent.joinall([gevent.spawn(crawl_page, year, i) for i in xrange(20*(j-1), 20*j)],)
+    # gevent.joinall([gevent.spawn(crawl_page, year, i) for i in xrange(pages-pages%20, pages+1)],)
+    pool.join()
     CONNECTION.close()
     print year, u'完成'
 
@@ -137,17 +143,16 @@ def get_years():
         yield j
 
 
-def consume(q):
-        print 0
-    # with TABLE.batch(batch_size=1000) as bat:
-        while not q.empty():
-            d = q.get(block=True)
-            sleep(0)
-            # bat.put(d['phone:%s'%CUR_TIME]+d['cert_id:%s'%CUR_TIME]+d['name:%s'%CUR_TIME], d)
-            print d
-
-def test(a,q):
-    print a,q
+# def consume(q):
+#     # with TABLE.batch(batch_size=1000) as bat:
+#         while not q.empty():
+#             d = q.get(block=True)
+#             sleep(0)
+#             # bat.put(d['phone:%s'%CUR_TIME]+d['cert_id:%s'%CUR_TIME]+d['name:%s'%CUR_TIME], d)
+#             print d
+#
+# def test(a,q):
+#     print a,q
 
 
 # q = multiprocessing.Queue(1001)

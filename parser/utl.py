@@ -6,7 +6,9 @@ import json
 
 
 class SessionInLock(requests.Session):
-
+    """
+    Session类，使用时调用get_url方法，等于session.get，里面封装了锁和sleep，控制网络访问
+    """
     def __init__(self):
         requests.Session.__init__(self)
         self.lock = threading.RLock()
@@ -26,6 +28,10 @@ class SessionInLock(requests.Session):
         return response_
 
 def formatCookie(s):
+    """把符合标准的字符串s转换成dict返回
+    :type s: str
+    :rtype :dict
+    """
     jd = {}
     for each in s.replace(' ', '').split(';'):
         [k,v] = each.split('=',1);
